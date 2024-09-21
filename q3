@@ -1,0 +1,87 @@
+Insert User
+<?php
+// Configuration
+$dbHost = "localhost";
+$dbUsername = "username";
+$dbPassword = "password";
+$dbName = "database";
+
+// Create connection
+$conn = new mysqli($dbHost, $dbUsername, $dbPassword, $dbName);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Insert user data
+$name = $_POST['Name'];
+$email = $_POST['EMail'];
+$mobile = $_POST['Mobile'];
+$address = $_POST['Address'];
+$profileImage = $_FILES['ProfileImage'];
+
+// Validate and upload profile image
+if ($profileImage['size'] > 0) {
+    $targetDir = "uploads/";
+    $profileImageName = basename($profileImage['name']);
+    $targetFile = $targetDir . $profileImageName;
+    move_uploaded_file($profileImage['tmp_name'], $targetFile);
+} else {
+    $profileImageName = "";
+}
+
+// Insert data into the database
+$sql = "INSERT INTO users (name, email, mobile, address, profile_image) VALUES (?, ?, ?, ?, ?)";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("sssss", $name, $email, $mobile, $address, $profileImageName);
+$stmt->execute();
+
+// Close connection
+$conn->close();
+
+echo "User inserted successfully!";
+?>
+View User Records
+<?php
+// Configuration
+$dbHost = "localhost";
+$dbUsername = "username";
+$dbPassword = "password";
+$dbName = "database";
+
+// Create connection
+$conn = new mysqli($dbHost, $dbUsername, $dbPassword, $dbName);
+
+// Check connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Retrieve all user records
+$sql = "SELECT * FROM users";
+$result = $conn->query($sql);
+
+// Display user records in a table
+if ($result->num_rows > 0) {
+    echo "<table>";
+    echo "<tr><th>User ID</th><th>Name</th><th>Email</th><th>Mobile</th><th>Address</th><th>Profile Image</th><th>Actions</th></tr>";
+    while($row = $result->fetch_assoc()) {
+        echo "<tr>";
+        echo "<td>" . $row["id"] . "</td>";
+        echo "<td>" . $row["name"] . "</td>";
+        echo "<td>" . $row["email"] . "</td>";
+        echo "<td>" . $row["mobile"] . "</td>";
+        echo "<td>" . $row["address"] . "</td>";
+        echo "<td><img src='uploads/" . $row["profile_image"] . "' width='50' height='50'></td>";
+        echo "<td><a href='edit.php?id=" . $row["id"] . "'>Edit</a> | <a href='view.php?id=" . $row["id"] . "'>View</a> | <a href='delete.php?id=" . $row["id"] . "'>Delete</a></td>";
+        echo "</tr>";
+    }
+    echo "</table>";
+} else {
+    echo "No user records found.";
+}
+
+// Close connection
+$conn->close();
+?>
