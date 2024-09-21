@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Image Upload and Form Validation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Profile Image Upload and Form Validation</h1>
+    <form name="profileForm" action="upload.php" method="post" enctype="multipart/form-data">
+        <p>
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="Name" placeholder="Enter your full name">
+            <span id="name-error" class="error-message"></span>
+        </p>
+        <p>
+            <label for="email">E-mail Address:</label>
+            <input type="text" id="email" name="EMail" placeholder="Enter your email">
+            <span id="email-error" class="error-message"></span>
+        </p>
+        <p>
+            <label for="mobile">Mobile:</label>
+            <input type="text" id="mobile" name="Mobile" placeholder="Enter your mobile number">
+            <span id="mobile-error" class="error-message"></span>
+        </p>
+        <p>
+            <label for="profileImage">Profile Image:</label>
+            <input type="file" id="profileImage" name="ProfileImage">
+            <span id="profileImage-error" class="error-message"></span>
+        </p>
+        <p>
+            <input type="submit" value="Submit" name="Submit">
+        </p>
+    </form>
+</body>
+</html>
+
+
+
+<?php
+// Configuration
+$maxFileSize = 1024 * 1024; // 1MB
+$allowedImageTypes = array('image/jpeg', 'image/png', 'image/gif');
+
+// Validate form data
+$name = $_POST['Name'];
+$email = $_POST['EMail'];
+$mobile = $_POST['Mobile'];
+$profileImage = $_FILES['ProfileImage'];
+
+// Name validation
+if (!preg_match('/^[a-zA-Z]+$/', $name)) {
+    $error = "Please enter a valid name.";
+} else {
+    $error = "";
+}
+
+// Email validation
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $error = "Please enter a valid email address.";
+} else {
+    $error = "";
+}
+
+// Mobile validation
+if (!preg_match('/^\d{10}$/', $mobile)) {
+    $error = "Please enter a valid 10-digit mobile number.";
+} else {
+    $error = "";
+}
+
+// Profile image validation
+if ($profileImage['size'] > $maxFileSize) {
+    $error = "Please select an image file smaller than 1MB.";
+} elseif (!in_array($profileImage['type'], $allowedImageTypes)) {
+    $error = "Please select a valid image file (JPG, PNG, GIF).";
+} else {
+    $error = "";
+}
+
+// If no errors, upload the profile image and insert data into the database
+if (empty($error)) {
+    $targetDir = "uploads/";
+    $profileImageName = basename($profileImage['name']);
+    $targetFile = $targetDir . $profileImageName;
+    move_uploaded_file($profileImage['tmp_name'], $targetFile);
+
+    // Insert data into the database
+    $dbHost = "localhost";
+    $dbUsername = "username";
+    $dbPassword = "password";
+    $dbName = "database";
+
+    $conn = new mysqli($dbHost, $dbUsername, $dbPassword, $dbName);
+
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
+
+    $sql = "INSERT INTO profiles (name, email, mobile, profile_image) VALUES (?, ?, ?, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssss", $name, $email, $mobile, $profileImageName);
+    $stmt->execute();
+
+    $conn->close();
+
+    echo "Profile created successfully!";
+} else {
+    echo $error;
+}
+?>
